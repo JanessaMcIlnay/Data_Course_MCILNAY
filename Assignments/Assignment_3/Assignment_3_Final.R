@@ -3,7 +3,7 @@
 
 # 1.  Get a subset of the "iris" data frame where it's just even-numbered rows
 iris -> dat_iris
-dat_iris(seq(2,150,2))
+dat_iris[seq(2,150,2),]
 
 
 # 2.  Create a new object called iris_chr which is a copy of iris, except where every column is a character class
