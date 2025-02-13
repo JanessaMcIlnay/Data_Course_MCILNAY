@@ -1,0 +1,7 @@
+Assignment #4:
+
+I want to analyze data on female genital mutilation in countries. I want to determine if it happens more in different areas of the world or across different age groups. I will also analyze what socioeconomic status it is more prevalent in along with attitudes towards the practice. I hypothesize that FGM will be more prevalent in poorer areas and will affect more young girls than older women.
+
+My main source of data is the UNICEF. The data is mainly percentages of the prevalence of FGM and the percentages of men and women who oppose the practice. 
+
+I am not able to make a plot using ggplot because I do not know how to clean the data yet (we talked about this together). I think bar graphs or line plots will work best for my data.
