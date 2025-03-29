@@ -1,0 +1,49 @@
+library(tidyverse)
+library(janitor)
+library(easystats)
+library(ggplot2)
+read.csv('Utah_Religions_by_County.csv')
+URC <- read.csv('Utah_Religions_by_County.csv')
+View(URC)
+str(URC)
+names(URC)
+
+
+long <- URC %>% 
+  pivot_longer(cols = -c(County, Pop_2010, Religious, Non.Religious),
+               names_to = 'religion',
+               values_to = 'percentage') 
+
+# Answering question 1: ####
+dat <- glm(data = long, 
+    formula = percentage ~ religion)
+performance(dat)
+# The R2 is very high showing that there is a high correlation between population and the percentage of religious people
+
+dat2 <- glm(data = URC, 
+    formula = Pop_2010 ~ LDS)
+performance(dat2) # this shows that there is little correlation between population and LDS
+
+dat3 <- glm(data = URC, 
+    formula = Pop_2010 ~ Muslim)
+performance(dat3)
+
+compare_performance(dat, dat2, dat3)
+
+# Answering question 2: ####
+correlation_value <- cor(URC$LDS, URC$Non.Religious, use = "complete.obs")
+# this shows there is a negative correlation; Counties with more LDS members have fewer non-religious people.
+
+
+## Made a scatter plot to visualize relationship####
+ggplot(URC, aes(x = LDS, y = Non.Religious)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = "lm", color = "red") +
+  labs(title = "LDS vs Non-Religious Proportion in Utah Counties",
+       x = "LDS Proportion",
+       y = "Non-Religious Proportion") +
+  theme_minimal()
+
+   
+  
+
