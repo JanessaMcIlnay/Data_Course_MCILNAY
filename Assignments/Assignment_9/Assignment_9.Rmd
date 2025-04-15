@@ -1,44 +1,131 @@
 ---
-output: 
-html_document:
-  number_sections=TRUE
-pagetitle: Assignment_9
+title: "Assignment 9"
+author: "Janessa McIlnay"
+output: html_document
+date: "April 15, 2025"
 ---
-
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(caret)
+library(ggplot2)
 ```
 
-# **Assignment 9**
+## Introduction
 
-In this assignment, you will use R (within R-Studio) to:
-  
-+ Load and clean a real data set
-+ Conduct exploratory analyses, including informative figures
-+ Build and test appropriate models
-+ Draw conclusions about your data
-+ Combine all of the above into a well-documented R-Markdown report and export (knit) it into an HTML file
+In this report, I will analyze predictors of graduate school admissions! The dataset includes:
 
-**All file paths should be relative, starting from *your* Assignment_9 directory!!**
+- `admit`: Admission outcome (1 = admitted, 0 = not admitted)
+- `gre`: GRE score
+- `gpa`: Undergraduate GPA
+- `rank`: Rank of the undergraduate institution (1 = highest)
 
-**This means that you need to create a new R-Project named "Assignment_9.Rproj" in your Assignment_9 directory, and work from scripts within that.**
+Let's set up! 
 
 
-## **For credit...**
+```{r libraries, echo=TRUE, warning=FALSE}
+library(tidyverse)
+library(easystats)
+library(caret)
 
-1.  Push a completed version of your Rproj and R-markdown file (details at end of this assignment) to GitHub
-2.  Your score will also depend on your analyses and presentation of your final report
+grad <- read.csv('GradSchool_Admissions.csv')
+```
 
-____________
+## Analyzing the Data
 
-# Your tasks:
+Let's see how the data is structured and change it if needed!
 
-+ Use the data set "/Data/GradSchool_Admissions.csv"
-+ You will explore and model the predictors of graduate school admission
-  - the "admit" column is coded as 1=success and 0=failure (that's binary, so model appropriately)
-  - the other columns are the GRE score, the GPA, and the rank of the undergraduate institution, where I is "top-tier."
-+ Document your data explorations, figures, and conclusions in a reproducible R-markdown report
-+ That means I want to see, in your html report, your process of model evaluation and selection. Here's an [example](https://gzahn.github.io/data-course/Repository/Assignments/Assignment_9/example.html){target="_blank"}
-+ Upload your **self-contained** R project, including knitted HTML report, to GitHub in *your* Assignment_9 directory
+```{r str, echo=TRUE}
+str(grad)
+as.logical(grad$admit)
+```
 
+Okay, let's make some models to see how the data works!
+
+```{r modeling, echo=TRUE}
+mod1 <- glm(data = grad,
+            formula = admit ~ gre + gpa,
+            family = 'binomial')
+mod2 <- glm(data = grad,
+            formula = admit ~ (gre + gpa)*rank,
+            family = 'binomial')
+mod3 <- glm(data = grad,
+            formula = admit ~ gre*gpa*rank,
+            family = 'binomial')
+```
+
+Great, now lets see how they do!
+
+```{r testmods, echo=TRUE}
+compare_performance(mod1, mod2, mod3) %>% plot()
+```
+Hmmm, it looks like they are all not doing great at finding correlation between variables. Let's try again.
+
+```{r explore}
+
+# Admission rate by rank
+admission_by_rank <- grad %>%
+  group_by(rank) %>%
+  summarise(admit_rate = mean(admit), count = n())
+print(admission_by_rank)
+```
+It looks like people with a rank of '1' get admitted most often. Let's make some more plots. 
+
+# Visualizing the Data
+```{r plots}
+
+ggplot(grad, aes(x = gre, fill = as.factor(admit))) + 
+  geom_histogram(position = "identity", alpha = 0.6, bins = 30) +
+  labs(title = "GRE Scores and Admission Status", fill = "Admitted")
+```
+This graph shows that most individuals who are admitted to graduate school seem to have a gre between 500-700.
+
+```{r plot again}
+ggplot(grad, aes(x = rank, fill = as.factor(admit))) +
+  geom_bar(position = "fill") +
+  labs(title = "Admission Rate by Institution Rank", fill = "Admitted") +
+  ylab("Proportion")
+```
+In this graph, it seems that higher ranking individuals are admitted more than those of a lower rank. Let's make one last graph to see how GPA affects admission.
+
+```{r last plot}
+ggplot(grad, aes(x = gpa, fill = as.factor(admit))) + 
+  geom_histogram(position = "identity", alpha = 0.6, bins = 30) +
+  labs(title = "GPA by Admission Status", fill = "Admitted")
+```
+It seems as though there is not a clear correlation between GPA and admission,  however, those with a GPA around 3.5-4.0 seem to be admitted most often.
+
+## Model Fitting: Logistic Regression
+
+```{r logistic-model}
+# Split data
+set.seed(123)
+trainIndex <- createDataPartition(grad$admit, p = .8, list = FALSE)
+train <- grad[trainIndex, ]
+test <- grad[-trainIndex, ]
+
+# Fit logistic regression
+model <- glm(admit ~ gre + gpa + rank, data = train, family = "binomial")
+summary(model)
+```
+
+This looks confusing, but it is actually very helpful for understanding the data. Let's break it down!
+
+Gre is NOT statistically significant, as the p value is 0.16. This means it cannot be used to predict admission. Rank has a negative coefficient, meaning that having a lower rank hurts chances of admission. Additionally, the positive gpa coefficient shows that having a high gpa increases one's chances of acceptance. 
+
+So...gpa and rank are significant admission predictors.
+
+## New Model
+
+```{r evaluation}
+mod4 <- glm(data = grad,
+            formula = admit ~ rank * gpa,
+            family = 'binomial')
+summary(mod4)
+compare_performance(mod1, mod2, mod3, mod4) %>% plot
+```
+
+## Conclusion
+
+After this analysis, I have determined that model 4 is the best at predicting admission. Though the r2 is still low, the graphs created show that having a higher gpa and a better rank typically lead to higher admission rates. 
