@@ -1,0 +1,124 @@
+---
+title: "Exam 3"
+author: Janessa McIlnay
+output: html_document
+date: "2025-04-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(easystats)
+library(tidyverse)
+library(broom)
+```
+
+## Task 1
+
+```{r task 1, echo=TRUE}
+# Task 1: Load and clean FacultySalaries_1995.csv file and Re-create the graph below####
+data <- read_csv("FacultySalaries_1995.csv")
+names(data)
+
+tidy_data <- data %>%
+  pivot_longer(
+    cols = c("AvgFullProfSalary", "AvgAssocProfSalary", "AvgAssistProfSalary"),
+    names_to = "Rank",
+    values_to = "Salary") %>%
+  mutate(
+    Rank = case_when(
+      Rank == "AvgFullProfSalary" ~ "Full",
+      Rank == "AvgAssocProfSalary" ~ "Assoc",
+      Rank == "AvgAssistProfSalary" ~ "Assist"
+    ),
+    Rank = factor(Rank, levels = c("Assist", "Assoc", "Full")),
+    Tier = factor(Tier, levels = c("I", "IIA", "IIB"))) %>% 
+  filter(!is.na(Tier))
+
+# Plot
+ggplot(tidy_data, aes(x = Rank, y = Salary, fill = Rank)) +
+  geom_boxplot() +
+  facet_grid(. ~ Tier, scales = "free_x") +  
+  scale_fill_manual(values = c("Assist" = "salmon", "Assoc" = "green", "Full" = "dodgerblue")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  ) +
+  labs(x = "Rank", y = "Salary", fill = "Rank")
+```
+## Task 2
+
+```{r task 2, echo=TRUE}
+# Task 2: Build an ANOVA model and display the summary output in your report.####
+tidy_data2 <- tidy_data %>%
+  mutate(
+    State = as.factor(State),
+    Tier = as.factor(Tier),
+    Rank = as.factor(Rank))
+
+anova_model <- aov(Salary ~ State + Tier + Rank, data = tidy_data2)
+summary(anova_model)
+
+```
+
+## Task 3
+```{r task 3, echo=TRUE}
+# Task 3: The rest of the test uses another data set. The “Juniper_Oils.csv” data. Get it loaded and take a look. Then tidy it! (show the code used for tidying in your report)####
+
+juniper_data <- read.csv('Juniper_oils.csv')
+
+tidy_juniper <- juniper_data %>%
+  pivot_longer(
+    cols = c("alpha.pinene", "para.cymene", "alpha.terpineol",       "cedr.9.ene",  "alpha.cedrene",       
+ "beta.cedrene",           "cis.thujopsene",         "alpha.himachalene",     
+"beta.chamigrene" ,       "cuparene",              "compound.1",           
+"alpha.chamigrene" ,      "widdrol",              "cedrol",              
+"beta.acorenol"  ,        "alpha.acorenol",        "gamma.eudesmol",        
+"beta.eudesmol",          "alpha.eudesmol",        "cedr.8.en.13.ol",      
+"cedr.8.en.15.ol" ,      "compound.2",            "thujopsenal"   ),
+    names_to = "Compound",
+values_to = "Concentration")
+print(tidy_juniper)
+```
+
+## Task 4 
+```{r task 4, echo=TRUE}
+# Task 4: Make me a graph of the following ####
+
+ggplot(data = tidy_juniper, aes(x = YearsSinceBurn, y = Concentration)) +
+  geom_smooth(method = "loess", se = TRUE, color = "blue", fill = "gray", linewidth = 1) +
+  facet_wrap(~ Compound, scales = "free_y") +
+  labs(
+    x = "YearsSinceBurn",
+    y = "Concentration"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    strip.text = element_text(size = 10),
+    axis.text = element_text(size = 8)
+  )
+
+```
+
+## Task 5 
+```{r task 5, echo=TRUE}
+# Task 5: Use a generalized linear model to find which chemicals show concentrations that are significantly (significant, as in P < 0.05) affected by “Years Since Burn” ####
+
+significant_results <- tidy_juniper %>%
+  group_by(Compound) %>%
+  nest() %>%
+  mutate(
+    model = map(data, ~ glm(Concentration ~ YearsSinceBurn, data = .x)),
+    tidied = map(model, tidy)
+  ) %>%
+  unnest(tidied) %>%
+  filter(term == "YearsSinceBurn", p.value < 0.05) %>%
+  select(Compound, term, estimate, std.error, statistic, p.value) %>%
+  arrange(p.value)
+
+print(significant_results)
+```
