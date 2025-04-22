@@ -1,0 +1,16 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## [BIOL-3100-Final-Project](./FGM)##
+
+# **Janessa McIlnay - Microbiology** #
+
+```{r, out.width="60%", echo=FALSE}
+knitr::include_graphics("./media/prof_portrait.jpg")
+```
+
